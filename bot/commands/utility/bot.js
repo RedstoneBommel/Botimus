@@ -3,7 +3,7 @@ import { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from "discord.
 export const data = new SlashCommandBuilder()
     .setName('bot')
     .setDescription('Information about Botimus Prime.')
-    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
+    .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages);
 
 export async function execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
