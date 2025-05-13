@@ -13,19 +13,15 @@ const guildId = process.env.GUILD_ID;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const foldersPath = path.join(__dirname, 'commands');
-const commandsFolder = fs.readdirSync(foldersPath);
+const commandFiles = fs.readdirSync(foldersPath).filter(file => file.endsWith('.js'));
 
-for (const folder of commandsFolder) {
-	const commandsPath = path.join(foldersPath, folder);
-	const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-	for (const file of commandFiles) {
-		const filePath = path.join(commandsPath, file);
-		const command = await import(pathToFileURL(filePath).href);
-		if ('data' in command && 'execute' in command) {
-			commands.push(command.data.toJSON());
-		} else {
-			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
-		}
+for (const file of commandFiles) {
+	const filePath = path.join(foldersPath, file);
+	const command = await import(pathToFileURL(filePath).href);
+	if ('data' in command && 'execute' in command) {
+		commands.push(command.data.toJSON());
+	} else {
+		console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
 	}
 }
 
