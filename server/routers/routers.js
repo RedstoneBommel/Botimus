@@ -1,5 +1,5 @@
 import express from 'express';
-import { twitch } from './twitch.js';
+import { twitch } from '../utils/twitch.js';
 
 export const router = express.Router();
 

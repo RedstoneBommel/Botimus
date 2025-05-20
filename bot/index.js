@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import path, { dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { startWebSocketClient } from './utils/webSocketClient.js';
 
 dotenv.config();
 
@@ -62,6 +63,7 @@ const loadEvents = async () => {
 const main = async () => {
 	await loadCommands();
 	await loadEvents();
+	startWebSocketClient();
 	client.login(process.env.BOT_TOKEN);
 };
 
