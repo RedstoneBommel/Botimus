@@ -41,7 +41,7 @@ export function startWebSocketClient() {
                 };
             } else if (message.type === 'twitch') {
                 if (message.action === 'live-message') {
-
+                    // call function to handle live message
                 } else {
                     console.warn('[WebSocket-Client] Unknown twitch-action:', message.action)
                 };

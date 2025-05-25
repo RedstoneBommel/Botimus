@@ -1,22 +1,22 @@
 import { Events } from 'discord.js';
 import dotenv from 'dotenv';
+import { updateOnlineMembers, updateTotalMembers } from '../utils/statsChannel.js';
 
 dotenv.config();
 
 export const name = Events.ClientReady;
 export const once = true;
 
-export function execute(client) {
-	const fancyNumbers = {"0": "𝟬", "1": "𝟭", "2": "𝟮", "3": "𝟯", "4": "𝟰", "5": "𝟱", "6": "𝟲", "7": "𝟳", "8": "𝟴", "9": "𝟵"};
+export async function execute(client) {
 	const guildId = process.env.GUILD_ID;
-    const memberGeneralStatsChannel = process.env.MEMBER_GENERAL_STATS_CHANNEL;
 	const guild = client.guilds.cache.get(guildId);
-    const statsChannel = guild.channels.cache.get(memberGeneralStatsChannel);
-    const totalMembers = guild.memberCount.toString().split('').map(num => fancyNumbers[num] || num).join('');
 	
-	if (statsChannel) {
-        statsChannel.setName(`📊︱𝗠𝗲𝗺𝗯𝗲𝗿𝘀: ${totalMembers}`);
-    }
+	await updateTotalMembers(guild);
+    await updateOnlineMembers(guild);
+
+    setInterval(async () => {
+        await updateOnlineMembers(guild);
+    }, 5 * 60 * 1000);
 	
 	console.log(`Ready! Logged in as ${client.user.tag}`);
 }
