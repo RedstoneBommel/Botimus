@@ -1,15 +1,20 @@
 import { Events } from 'discord.js';
-import dotenv from 'dotenv';
-
-dotenv.config()
+import { readFile } from 'fs/promises';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 export const name = Events.MessageReactionRemove;
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export async function execute(reaction, user) {
 	try {
-		const ruleMessage = process.env.RULE_MESSAGE;
+		const metaPath = path.join(__dirname, '../meta.json');
+        const meta = JSON.parse(await readFile(metaPath, 'utf-8'));
+		const ruleMessage = meta.message.rule;
 		const validRuleReaction = '✅';
-		const memberRoleId = process.env.MEMBER_ROLE_ID;
+		const memberRoleId = meta.role.member;
 
 		if (user.bot) return;
 

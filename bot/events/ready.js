@@ -1,6 +1,6 @@
 import { Events } from 'discord.js';
 import dotenv from 'dotenv';
-import { updateOnlineMembers, updateTotalMembers } from '../utils/statsChannel.js';
+import { updateOnlineMembers, updateTotalBots, updateTotalMembers } from '../utils/statsChannel.js';
 
 dotenv.config();
 
@@ -13,6 +13,7 @@ export async function execute(client) {
 	
 	await updateTotalMembers(guild);
     await updateOnlineMembers(guild);
+    await updateTotalBots(guild);
 
     setInterval(async () => {
         await updateOnlineMembers(guild);
