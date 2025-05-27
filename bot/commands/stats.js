@@ -5,8 +5,8 @@ export const data = new SlashCommandBuilder()
     .setName('stats')
     .setDescription('Show the current server statistics.')
     .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers)
-    .addSubcommand(command =>
-        command.setName('type')
+    .addStringOption(option =>
+        option.setName('type')
             .setDescription('Select the type of statistics to display')
             .setRequired(true)
             .addChoices(
@@ -17,8 +17,7 @@ export const data = new SlashCommandBuilder()
         )
 
 export async function execute(interaction) {
-    const subCommand = interaction.options.getSubcommand();
-    const option = interaction.options.getString(subCommand);
+    const option = interaction.options.getString('type');
     const guild = interaction.guild;
     
     await interaction.deferReply({ ephemeral: true });
@@ -27,9 +26,7 @@ export async function execute(interaction) {
         return interaction.reply({ content: 'This command can only be used in servers.', ephemeral: true });
     }
     
-    if (subCommand === 'type') {
-        await createStatsChannel(guild, option);
-        
-        return interaction.editReply({ content: `Statistics channel created for ${option.replace('_', ' ')}.` });
-    }
+    await createStatsChannel(guild, option);
+    
+    return interaction.editReply({ content: `Statistics channel created for ${option.replace('_', ' ')}.` });
 }
