@@ -1,4 +1,5 @@
-import { readFile } from 'fs/promises';
+import { ChannelType, PermissionFlagsBits } from 'discord.js';
+import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -28,6 +29,67 @@ async function loadMeta() {
     } catch (error) {
         console.error('Error reading meta.json:', error);
         throw error;
+    }
+}
+
+export async function createStatsChannel(guild, option) {
+    await loadMeta();
+    
+    if (!guild) {
+        throw new Error('Guild not found');
+    }
+    
+    if (!meta.channel) {
+        throw new Error('Meta channel configuration not found');
+    }
+    
+    if (meta.channel[option]) {
+        throw new Error(`Channel configuration for ${option} already in meta.json`);
+    }
+    
+    let statsCategory;
+    
+    if (!guild.channels.cache.some(channel => channel.name === '🔹𝕊𝕖𝕣𝕧𝕖𝕣 𝕊𝕥𝕒𝕥𝕤🔹' && channel.type === ChannelType.GuildCategory)) {
+        statsCategory = await guild.channels.create({
+            name: '🔹𝕊𝕖𝕣𝕧𝕖𝕣 𝕊𝕥𝕒𝕥𝕤🔹',
+            type: ChannelType.GuildCategory,
+            permissionOverwrites: [
+                {
+                    id: meta.role.member,
+                    allow: [PermissionFlagsBits.ViewChannel],
+                    deny: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.Connect]
+                }
+            ]
+        });
+    } else {
+        statsCategory = guild.channels.cache.find(channel => channel.name === '🔹𝕊𝕖𝕣𝕧𝕖𝕣 𝕊𝕥𝕒𝕥𝕤🔹' && channel.type === ChannelType.GuildCategory);
+    }
+    
+    if (!statsCategory) {
+        throw new Error('Stats category not found or created');
+    } else {
+        const statsChannel = await guild.channels.create({
+            name: `temp-${option}-${Date.now()}`,
+            type: ChannelType.GuildVoice,
+            parent: statsCategory.id,
+        });
+        
+        meta.channel[option] = statsChannel.id;
+        await writeFile(path.join(__dirname, '../meta.json'), JSON.stringify(meta, null, 2), 'utf-8');
+        
+        switch (option) {
+            case 'member_general_stats':
+                await updateTotalMembers(guild);
+                break;
+            case 'member_online_stats':
+                await updateOnlineMembers(guild);
+                break;
+            case 'bot_general_stats':
+                await updateTotalBots(guild);
+                break;
+            default:
+                throw new Error(`Unknown option: ${option}`);
+        }
     }
 }
 
