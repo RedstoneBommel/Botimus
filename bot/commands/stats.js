@@ -20,10 +20,10 @@ export async function execute(interaction) {
     const option = interaction.options.getString('type');
     const guild = interaction.guild;
     
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
     
     if (!guild) {
-        return interaction.reply({ content: 'This command can only be used in servers.', ephemeral: true });
+        return interaction.reply({ content: 'This command can only be used in servers.', flags: 64 });
     }
     
     await createStatsChannel(guild, option);

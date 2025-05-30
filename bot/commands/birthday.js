@@ -35,7 +35,7 @@ export async function execute(interaction) {
     const subCommand = interaction.options.getSubcommand();
     const userId = interaction.user.id;
     
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
     
     if (!interaction.guild) {
         return interaction.editReply({ content: 'This command can only be used in servers.' });

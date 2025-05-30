@@ -40,7 +40,7 @@ export async function execute(interaction) {
     const subCommand = interaction.options.getSubcommand();
     const streamer = interaction.options.getString('streamer').toLowerCase();
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     try {
         if (subCommand === 'get') {

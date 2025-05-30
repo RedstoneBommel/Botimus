@@ -78,10 +78,10 @@ export async function execute(interaction) {
     const adminOnly = ['create', 'delete'];
     const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.KickMembers);
     
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
     
     if (adminOnly.includes(subcommand) && !isAdmin) {
-        return interaction.editReply({ content: 'You do not have permission to use this command.', ephemeral: true });
+        return interaction.editReply({ content: 'You do not have permission to use this command.', flags: 64 });
     } else {
         switch (subcommand) {
             case 'create':

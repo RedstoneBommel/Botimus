@@ -4,11 +4,16 @@ import countries from 'i18n-iso-countries';
 import path from 'path';
 
 async function registerEnglishLocale(language) {
-    const jsonPath = path.resolve(`./node_modules/i18n-iso-countries/langs/${language}.json`);
-    const jsonData = await readFile(jsonPath, 'utf-8');
-    const lang = JSON.parse(jsonData);
-    countries.registerLocale(lang);
+    try {
+        const jsonPath = path.resolve(`./node_modules/i18n-iso-countries/langs/${language}.json`);
+        const jsonData = await readFile(jsonPath, 'utf-8');
+        const lang = JSON.parse(jsonData);
+        countries.registerLocale(lang);
+    } catch (error) {
+        console.error(`Failed to register locale '${language}':`, error);
+    }
 }
+
 
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -63,10 +68,11 @@ export async function playRoundWithTime(interaction, roundNumber, totalRounds, l
                 .setStyle(ButtonStyle.Primary)
         ));
     
-    const msg = await interaction.editReply({ embeds: [embed], components: [answer], fetchReply: true });
+    await interaction.editReply({ embeds: [embed], components: [answer] });
+    const message = await interaction.fetchReply();
     
     const filter = i => i.user.id === interaction.user.id;
-    const collector = msg.createMessageComponentCollector({ filter, time: timeLimitMs });
+    const collector = message.createMessageComponentCollector({ filter, time: timeLimitMs });
     
     let answered = false;
     
@@ -103,7 +109,7 @@ export async function playRoundWithTime(interaction, roundNumber, totalRounds, l
                 playRoundWithTime(interaction, roundNumber + 1, totalRounds, language, timeLimitMs, correctCount);
             }, 3000);
         } else {
-            await interaction.followUp({ content: `🏁 Game over! You got ${correctCount} out of ${totalRounds} correct.`, ephemeral: true});
+            await interaction.followUp({ content: `🏁 Game over! You got ${correctCount} out of ${totalRounds} correct.`, flags: 64 });
         }
     });
 }
@@ -129,10 +135,11 @@ export async function playRoundWithoutTime(interaction, roundNumber, totalRounds
                 .setStyle(ButtonStyle.Primary)
         ));
     
-    const msg = await interaction.editReply({ embeds: [embed], components: [answer], fetchReply: true });
+    await interaction.editReply({ embeds: [embed], components: [answer] });
+    const message = await interaction.fetchReply();
     
     const filter = i => i.user.id === interaction.user.id;
-    const collector = msg.createMessageComponentCollector({ filter });
+    const collector = message.createMessageComponentCollector({ filter });
     
     let answered = false;
     
@@ -169,7 +176,7 @@ export async function playRoundWithoutTime(interaction, roundNumber, totalRounds
                 playRoundWithoutTime(interaction, roundNumber + 1, totalRounds, language, correctCount);
             }, 3000);
         } else {
-            await interaction.followUp({ content: `🏁 Game over! You got ${correctCount} out of ${totalRounds} correct.`, ephemeral: true});
+            await interaction.followUp({ content: `🏁 Game over! You got ${correctCount} out of ${totalRounds} correct.`, flags: 64 });
         }
     });
 }
