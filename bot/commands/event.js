@@ -18,12 +18,12 @@ export const data = new SlashCommandBuilder()
                     .setRequired(true)
             )
             .addStringOption(option =>
-                option.setName('date')
+                option.setName('date_start')
                     .setDescription('The date of the event (YYYY-MM-DD).')
                     .setRequired(true)
             )
             .addStringOption(option =>
-                option.setName('time')
+                option.setName('time_start')
                     .setDescription('The time of the event (HH:MM:SS).')
                     .setRequired(true)
             )
@@ -40,6 +40,21 @@ export const data = new SlashCommandBuilder()
                 option.setName('voice_channel')
                     .setDescription('The voice channel where the event will be announced.')
                     .addChannelTypes(ChannelType.GuildVoice)
+                    .setRequired(false)
+            )
+            .addStringOption(option =>
+                option.setName('address')
+                    .setDescription('The address of the event.')
+                    .setRequired(false)
+            )
+            .addStringOption(option =>
+                option.setName('date_end')
+                    .setDescription('The end date of the event (YYYY-MM-DD).')
+                    .setRequired(false)
+            )
+            .addStringOption(option =>
+                option.setName('time_end')
+                    .setDescription('The end time of the event (HH:MM:SS).')
                     .setRequired(false)
             )
     )
@@ -71,35 +86,58 @@ export async function execute(interaction) {
         switch (subcommand) {
             case 'create':
                 const description = interaction.options.getString('description');
-                const date = interaction.options.getString('date');
-                const time = interaction.options.getString('time');
+                const dateStart = interaction.options.getString('date_start');
+                const timeStart = interaction.options.getString('time_start');
                 const location = interaction.options.getString('location');
                 const voiceChannel = interaction.options.getChannel('voice_channel');
+                const address = interaction.options.getString('address') || 'No address provided';
+                const dateEnd = interaction.options.getString('date_end');
+                const timeEnd = interaction.options.getString('time_end');
                 
                 if (!interaction.guild) {
                     return interaction.editReply('This command can only be used in a server.');
                 }
                 
-                const isoTimestamp = new Date(`${date}T${time}`);
-                if (isNaN(isoTimestamp.getTime())) {
+                if (location === '2' && !voiceChannel) {
+                    return interaction.editReply('Please specify a voice channel for online events.');
+                } else if (location === '3' && (dateEnd === null && timeEnd === null)) {
+                    return interaction.editReply('Please enter a end date and end time for your event (just required with "In-Person"-Events).');
+                }
+                
+                const isoTimestampStart = new Date(`${dateStart}T${timeStart}`);
+                if (isNaN(isoTimestampStart.getTime())) {
                     return interaction.editReply('Please provide valid date and time.');
                 }
                 
-                if (location === '2' && !voiceChannel) {
-                    return interaction.editReply('Please specify a voice channel for online events.');
+                const isoTimestampEnd = new Date(`${dateEnd}T${timeEnd}`);
+                if(isNaN(isoTimestampEnd.getTime())) {
+                    return interaction.editReply('Please provide a valid end date and time.');
+                }
+                
+                const eventSettings = {
+                    name: name,
+                    description: description,
+                    scheduledStartTime: new Date(`${dateStart}T${timeStart}Z`),
+                    entityType: parseInt(location, 10),
+                    privacyLevel: 2 // Guild Only
+                }
+                
+                if (location === '2') {
+                    Object.assign(eventSettings, {
+                        channel: voiceChannel.id
+                    });
+                } else if (location === '3') {
+                    Object.assign(eventSettings, {
+                        scheduledEndTime: new Date(`${dateEnd}T${timeEnd}Z`),
+                        entityMetadata: {
+                            location: address
+                        }
+                    });
                 }
                 
                 try {
-                    await interaction.guild.scheduledEvents.create({
-                        name: name,
-                        description: description,
-                        scheduledStartTime: new Date(`${date}T${time}Z`),
-                        entityType: parseInt(location, 10),
-                        channel: voiceChannel.id ?? null,
-                        privacyLevel: 2 // Guild Only
-                    });
-                    
-                    await interaction.editReply(`Event created: **${name}** on **${date}** at **${time}**.`);
+                    await interaction.guild.scheduledEvents.create(eventSettings);
+                    await interaction.editReply(`Event created: **${name}** on **${dateStart}** at **${timeStart}**.`);
                 } catch (error) {
                     console.error('Error creating event:', error);
                     return interaction.editReply('An error occurred while creating the event. Please try again later.');
