@@ -1,7 +1,7 @@
 import { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import { translate } from 'google-translate-api-browser';
 import ISO6391 from 'iso-639-1';
-import { generateInviteEmbed } from '../utils/flagGuesserHost.js';
+import { closeHostLobby, generateInviteEmbed } from '../utils/flagGuesserHost.js';
 import { playRoundWithTime, playRoundWithoutTime } from '../utils/flagGuesserSolo.js';
 
 export const data = new SlashCommandBuilder()
@@ -53,6 +53,10 @@ export const data = new SlashCommandBuilder()
                     .setDescription('Language for the game.')
                     .setRequired(false)
             )
+    )
+    .addSubcommand(subcommand =>
+        subcommand.setName('close')
+            .setDescription('Close your active lobby')
     );
 
 export async function execute(interaction) {
@@ -173,6 +177,8 @@ export async function execute(interaction) {
             await interaction.editReply({ embeds: [embedScore], flags: 64 });
             break;
         case 'help':
+            await interaction.deferReply({ flags: 64 });
+            
             const embedHelp = new EmbedBuilder()
                 .setColor('#0099ff')
                 .setTitle('🌍 Flag Guesser – Help')
@@ -218,6 +224,12 @@ export async function execute(interaction) {
                             '• `time` – Set the time limit per round for all players (default: unlimited)\n' +
                             '• `rounds` – Set how many rounds the lobby will play (default: 10)\n' +
                             '• `language` – Choose the answer language for the whole lobby (`english`, `deutsch`) (default: `english`)',
+                    },
+                    {
+                        name: '❌ `/flagguesser close`',
+                        value:
+                            'Close your active lobby via command.\n' +
+                            'Use this if the original lobby message is missing or the lobby has crashed.'
                     }
                 )
                 .setTimestamp()
@@ -265,6 +277,10 @@ export async function execute(interaction) {
             
             await interaction.editReply('🎮 Hosting flag guessing game...');
             await generateInviteEmbed(interaction, hostRoundsInt, language, time ? parseInt(time, 10) : null, userId);
+            break;
+        case 'close':
+            await interaction.deferReply({});
+            await closeHostLobby(interaction, userId);
             break;
         default:
             await interaction.editReply({ content: 'Unknown subcommand.', flags: 64 });

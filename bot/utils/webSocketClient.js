@@ -50,12 +50,16 @@ export function startWebSocketClient() {
             console.error('[WebSocket-Client] Error while parsing the message:', error);
         };
     });
-
+    
     webSocket.on('close', () => {
-        console.log('[WebSocket-Client] WebSocket disconnected');
+        console.log('[WebSocket-Client] Disconnected. Reconnecting in 10s...');
+        setTimeout(() => {
+            startWebSocketClient();
+        }, 10000);
     });
-
+    
     webSocket.on('error', (error) => {
-        console.error('[WebSocket-Client] WebSocket error:', error);
+        console.error('[WebSocket-Client] WebSocket error:', error.code ?? 'No error code');
+        console.error('[WebSocket-Client] WebSocket error. All WebSocket features are currently not available.');
     });
 };

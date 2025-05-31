@@ -1,7 +1,10 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } from 'discord.js';
+import dotenv from 'dotenv';
 import { readFile } from 'fs/promises';
 import countries from 'i18n-iso-countries';
 import path from 'path';
+
+dotenv.config();
 
 async function registerEnglishLocale(language) {
     try {
@@ -67,13 +70,19 @@ async function createLobbyEmbed(lobby, language, totalRounds, timeLimit, usernam
 export async function generateInviteEmbed(interaction, totalRounds = 10, language = 'en', timeLimit = null, hostId) {
     await registerEnglishLocale(language);
     
+    if (activeLobbies.has(hostId)) {
+        return interaction.editReply({ content: 'You already have an active lobby. Please close it before creating a new one. If you can not find the old lobby embed message use the command to remove your old lobby.', flags: 64 });
+    }
+    
     activeLobbies.set(interaction.user.id, {
         members: new Set(),
         settings: {
             totalRounds,
             language,
             timeLimit
-        }
+        },
+        points: {},
+        answered: new Set()
     });
     
     let closedByHost = false;
@@ -107,32 +116,20 @@ export async function generateInviteEmbed(interaction, totalRounds = 10, languag
     await interaction.editReply({ embeds: [updatedEmbed], components: [inviteMessageButtons] });
     
     collector.on('collect', async (i) => {
+        await i.deferReply({});
         if ((i.customId.startsWith('join_flag_guesser') && i.user.id === hostId) || (i.customId.startsWith('leave_flag_guesser') && i.user.id === hostId)) {
-            return i.reply({ content: 'You are the Host, you can not use this buttons.', flags: 64 });
+            return i.editReply({ content: 'You are the Host, you can not use this buttons.', flags: 64 });
         }
         
         if ((i.customId.startsWith('close_invite') && i.user.id !== hostId) || (i.customId.startsWith('start_flag_guesser') && i.user.id !== hostId)) {
-            return i.reply({ content: 'You are not the Host, you can not use this buttons.', flags: 64 });
+            return i.editReply({ content: 'You are not the Host, you can not use this buttons.', flags: 64 });
         }
         
         if(i.user.id === hostId) {
             if (i.customId.startsWith('start_flag_guesser')) {
-                await i.message.delete();
-                
                 if (lobby.members.size < 2) {
-                    return i.reply({ content: 'You need at least 2 players to start the game!', flags: 64 });
+                    return i.editReply({ content: 'You need at least 2 players to start the game!', flags: 64 });
                 } else {
-                    if (timeLimit) {
-                        setTimeout(async () => {
-                            await playHostRoundWithTime(interaction, 1, totalRounds, language, timeLimit * 1000);
-                        }, 10 * 1000);
-                    }
-                    else {
-                        setTimeout(async () => {
-                            await playHostRoundWithoutTime(interaction, 1, totalRounds, language);
-                        }, 10 * 1000);
-                    }
-                    
                     for (const memberId of lobby.members) {
                         try {
                             const member = await interaction.guild.members.fetch(memberId);
@@ -144,57 +141,67 @@ export async function generateInviteEmbed(interaction, totalRounds = 10, languag
                         }
                     }
                     
-                    await interaction.reply({ content: 'The game is starting! Check your DMs.', ephemeral: false });
+                    await i.editReply({ content: 'The game is starting! Check your DMs.', ephemeral: false });
                     const startMessage = await interaction.fetchReply();
                     
-                    setTimeout(() => {
-                        startMessage.delete().catch(() => {});
-                    }, 5000);
+                    setTimeout(async () => {
+                        console.log('ID:', hostId)
+                        try {
+                            startMessage.delete().catch(() => {});
+                            if (timeLimit) {
+                                await playHostRoundWithTime(i, 1, totalRounds, language, timeLimit * 1000, hostId);
+                            } else {
+                                await playHostRoundWithoutTime(i, 1, totalRounds, language, hostId);
+                            }
+                        } catch (error) {
+                            console.error('Error in Timeout:', error);
+                        }
+                    }, 10000);
                 }
                 return;
             } else if (i.customId.startsWith('close_invite')) {
                 activeLobbies.delete(hostId);
                 await i.message.delete();
                 closedByHost = true;
-                await i.reply({ content: 'Invite closed successfully.', flags: 64 });
+                await i.editReply({ content: 'Invite closed successfully.', flags: 64 });
             } else {
-                return i.reply({ content: 'You are the Host, you can not use this button.', flags: 64 });
+                return i.editReply({ content: 'You are the Host, you can not use this button.', flags: 64 });
             }
         } else {
             if (i.customId.startsWith('join_flag_guesser')) {
                 if (!lobby) {
-                    return i.reply({ content: 'This game lobby does not exist or has already been closed.', flags: 64 });
+                    return i.editReply({ content: 'This game lobby does not exist or has already been closed.', flags: 64 });
                 }
                 
                 if (lobby.members.has(i.user.id)) {
-                    return i.reply({ content: 'You have already joined this game!', flags: 64 });
+                    return i.editReply({ content: 'You have already joined this game!', flags: 64 });
                 }
                 
                 lobby.members.add(i.user.id);
                 const updatedEmbed = await createLobbyEmbed(lobby, lobby.settings.language, lobby.settings.totalRounds, lobby.settings.timeLimit, interaction.user.username);
-                await i.editReply({ embeds: [updatedEmbed], components: [inviteMessageButtons] });
-                return i.reply({ content: 'You have joined the game!', flags: 64 });
+                await interaction.editReply({ embeds: [updatedEmbed], components: [inviteMessageButtons] });
+                return i.editReply({ content: 'You have joined the game!', flags: 64 });
             } else if (i.customId.startsWith('leave_flag_guesser')) {
                 if (!lobby) {
-                    return i.reply({ content: 'This game lobby does not exist or has already been closed.', flags: 64 });
+                    return i.editReply({ content: 'This game lobby does not exist or has already been closed.', flags: 64 });
                 }
                 
                 if (!lobby.members.has(i.user.id)) {
-                    return i.reply({ content: 'You have not joined this game!', flags: 64 });
+                    return i.editReply({ content: 'You have not joined this game!', flags: 64 });
                 }
                 
                 lobby.members.delete(i.user.id);
                 const updatedEmbed = await createLobbyEmbed(lobby, lobby.settings.language, lobby.settings.totalRounds, lobby.settings.timeLimit, interaction.user.username);
-                await i.editReply({ embeds: [updatedEmbed], components: [inviteMessageButtons] });
-                return i.reply({ content: 'You have left the game!', flags: 64 });
+                await interaction.editReply({ embeds: [updatedEmbed], components: [inviteMessageButtons] });
+                return i.editReply({ content: 'You have left the game!', flags: 64 });
             } else {
-                return i.reply({ content: 'You are not the Host, you can not use this button.', flags: 64 });
+                return i.editReply({ content: 'You are not the Host, you can not use this button.', flags: 64 });
             }
         }
     });
     collector.on('end', async () => {
         try{
-            if (!closedByHost) {
+            if (closedByHost) {
                 activeLobbies.delete(hostId);
                 await message.delete();
             }
@@ -205,10 +212,248 @@ export async function generateInviteEmbed(interaction, totalRounds = 10, languag
     return message;
 }
 
-export async function playHostRoundWithTime(interaction, roundNumber, totalRounds, language, timeLimitMs, correctCount = 0) {
-    
+export async function closeHostLobby(interaction, hostId) {
+    try {
+        const lobby = activeLobbies.get(hostId);
+        
+        if (lobby) {
+            activeLobbies.delete(hostId);
+            await interaction.editReply({ content: 'You lobby has been deleted.', flags: 64 });
+        } else {
+            await interaction.editReply({ content: 'You do not have an active lobby.', flags: 64 });
+        }
+    } catch (error) {
+        console.error('Error closing lobby:', error);
+        await interaction.editReply({ content: 'An error occurred while closing your lobby. Try again later.', flags: 64 });
+    }
 }
 
-export async function playHostRoundWithoutTime(interaction, roundNumber, totalRounds, language, correctCount = 0) {
+export async function playHostRoundWithTime(interaction, roundNumber, totalRounds, language, timeLimitMs, hostId, correctCount = 0) {
+    let round;
+    const lobby = activeLobbies.get(hostId);
     
+    if (!lobby) {
+        return interaction.editReply({ content: 'This game lobby does not exist or has already been closed.', flags: 64 });
+    }
+    
+    if (language) {
+        await registerEnglishLocale(language);
+        round = generateRoundData(language);
+    }
+    
+    const embed = new EmbedBuilder()
+        .setTitle(`Round ${roundNumber}/${totalRounds}`)
+        .setDescription('Which country does this flag belong to?')
+        .setImage(round.imageUrl);
+    const answer = new ActionRowBuilder()
+        .addComponents(
+            round.options.map(option =>
+                new ButtonBuilder()
+                    .setCustomId(option)
+                    .setLabel(option)
+                    .setStyle(ButtonStyle.Primary)
+        ));
+    
+    for (const memberId of lobby.members) {
+        try {
+            const member = await interaction.guild.members.fetch(memberId);
+            const dm = await member.createDM();
+            const message = await dm.send({ embeds: [embed], components: [answer] });
+            const filter = i => i.user.id === memberId;
+            const collector = message.createMessageComponentCollector({ filter, time: timeLimitMs });
+            let answered = false;
+            
+            collector.on('collect', async i => {
+                answered = true;
+                const isCorrect = i.customId === round.correct;
+                
+                if (lobby.answered.has(memberId)) return;
+                
+                if (isCorrect) correctCount++;
+                
+                if (!lobby.points[memberId]) lobby.points[memberId] = [];
+                
+                lobby.points[memberId].push(isCorrect);
+                lobby.answered.add(memberId);
+                
+                const resultEmbed = EmbedBuilder.from(embed)
+                    .setDescription(isCorrect ? `✅ Correct! The answer is **${round.correct}**.` : `❌ Incorrect! Correct answer: **${round.correct}**.`);
+                
+                const disabledRow = new ActionRowBuilder()
+                    .addComponents(answer.components.map(button => button.setDisabled(true)));
+                
+                await i.update({ embeds: [resultEmbed], components: [disabledRow] });
+                await checkIfRoundFinished(interaction, roundNumber, totalRounds, language, hostId, correctCount);
+                
+                collector.stop();
+            });
+            
+            collector.on('end', async collected => {
+                if (!lobby.answered.has(memberId)) {
+                    lobby.points[memberId] = lobby.points[memberId] || [];
+                    lobby.points[memberId].push(false);
+                    lobby.answered.add(memberId);
+                    
+                    const resultEmbed = EmbedBuilder.from(embed)
+                        .setDescription(`⏰ Time's up! The correct answer was **${round.correct}**.`);
+                    
+                    const disabledRow = new ActionRowBuilder()
+                        .addComponents(answer.components.map(button => button.setDisabled(true)));
+                    
+                    await message.edit({ embeds: [resultEmbed], components: [disabledRow] });
+                    await checkIfRoundFinished(interaction, roundNumber, totalRounds, language, hostId, correctCount);
+                }
+            });
+        } catch (error) {
+            console.warn(`Could not send DM to user ${memberId}:`, error);
+        }
+    }
+}
+
+export async function playHostRoundWithoutTime(interaction, roundNumber, totalRounds, language, hostId, correctCount = 0) {
+    let round;
+    const lobby = activeLobbies.get(hostId);
+    
+    if (!lobby) {
+        return interaction.editReply({ content: 'This game lobby does not exist or has already been closed.', flags: 64 });
+    }
+    
+    if (language) {
+        await registerEnglishLocale(language);
+        round = generateRoundData(language);
+    }
+    
+    const embed = new EmbedBuilder()
+        .setTitle(`Round ${roundNumber}/${totalRounds}`)
+        .setDescription('Which country does this flag belong to?')
+        .setImage(round.imageUrl);
+    const answer = new ActionRowBuilder()
+        .addComponents(
+            round.options.map(option =>
+                new ButtonBuilder()
+                    .setCustomId(option)
+                    .setLabel(option)
+                    .setStyle(ButtonStyle.Primary)
+        ));
+    
+    for (const memberId of lobby.members) {
+        try {
+            const member = await interaction.guild.members.fetch(memberId);
+            const dm = await member.createDM();
+            const message = await dm.send({ embeds: [embed], components: [answer] });
+            const filter = i => i.user.id === memberId;
+            const collector = message.createMessageComponentCollector({ filter });
+            let answered = false;
+            
+            collector.on('collect', async i => {
+                answered = true;
+                const isCorrect = i.customId === round.correct;
+                
+                if (lobby.answered.has(memberId)) return;
+                
+                if (isCorrect) correctCount++;
+                
+                if (!lobby.points[memberId]) lobby.points[memberId] = [];
+                
+                lobby.points[memberId].push(isCorrect);
+                lobby.answered.add(memberId);
+                
+                console.log(lobby.points, lobby.answered);
+                
+                const resultEmbed = EmbedBuilder.from(embed)
+                    .setDescription(isCorrect ? `✅ Correct! The answer is **${round.correct}**.` : `❌ Incorrect! Correct answer: **${round.correct}**.`);
+                
+                const disabledRow = new ActionRowBuilder()
+                    .addComponents(answer.components.map(button => button.setDisabled(true)));
+                
+                await i.update({ embeds: [resultEmbed], components: [disabledRow] });
+                await checkIfRoundFinished(interaction, roundNumber, totalRounds, language, hostId, correctCount)
+                
+                collector.stop();
+            });
+            
+            collector.on('end', async collected => {
+                if (!lobby.answered.has(memberId)) {
+                    lobby.points[memberId] = lobby.points[memberId] || [];
+                    lobby.points[memberId].push(false);
+                    lobby.answered.add(memberId);
+                    
+                    const resultEmbed = EmbedBuilder.from(embed)
+                        .setDescription(`⏰ Time's up! The correct answer was **${round.correct}**.`);
+                    
+                    const disabledRow = new ActionRowBuilder()
+                        .addComponents(answer.components.map(button => button.setDisabled(true)));
+                    
+                    await message.edit({ embeds: [resultEmbed], components: [disabledRow] });
+                    await checkIfRoundFinished(interaction, roundNumber, totalRounds, language, hostId, correctCount);
+                }
+            });
+        } catch (error) {
+            console.warn(`Could not send DM to user ${memberId}:`, error);
+        }
+    }
+}
+async function checkIfRoundFinished(interaction, roundNumber, totalRounds, language, hostId, correctCount) {
+    const lobby = activeLobbies.get(hostId);
+    const guildId = process.env.GUILD_ID;
+    
+    if (lobby.answered.size === lobby.members.size) {
+        setTimeout(async () => {
+            lobby.answered.clear();
+            
+            if (roundNumber < totalRounds) {
+                await playHostRoundWithoutTime(interaction, roundNumber + 1, totalRounds, language, hostId, correctCount);
+            } else {
+                const guild = await interaction.client.guilds.fetch(guildId);
+                let bestCorrectAnswerCount = 0;
+                let bestPlayer = '';
+                
+                // Check for the best player of the lobby
+                for (const memberId of lobby.members) {
+                    const answers = lobby.points[memberId] || [];
+                    let correctAnswersCount = 0;
+                    
+                    for (const answer of answers) {
+                        if (answer) correctAnswersCount++;
+                    }
+                    
+                    if (correctAnswersCount > bestCorrectAnswerCount) {
+                        bestCorrectAnswerCount = correctAnswersCount;
+                        bestPlayer = memberId;
+                    }
+                }
+                
+                // Check if the best player in the guild to fetch his username
+                if (guild.members.fetch(bestPlayer)) {
+                    const bestPlayerMember = await guild.members.fetch(bestPlayer);
+                    bestPlayer = bestPlayerMember.user.username;
+                } else {
+                    bestPlayer = 'Unknown';
+                }
+                
+                // Count the correct answers of every member
+                for (const memberId of lobby.members) {
+                    const answers = lobby.points[memberId] || [];
+                    let correctAnswersCount = 0;
+                    
+                    for (const answer of answers) {
+                        if (answer) correctAnswersCount++;
+                    }
+                    
+                    const finalEmbed = new EmbedBuilder()
+                        .setTitle('🏁 Game Over!')
+                        .setDescription(`You got ${correctAnswersCount} out of ${answers.length} correct.\nThe best player of the lobby was ${bestPlayer} with ${bestCorrectAnswerCount}.`)
+                        .setColor('#ff0000');
+                    
+                    try {
+                        const member = await interaction.guild.members.fetch(memberId);
+                        const dm = await member.createDM();
+                        await dm.send({ embeds: [finalEmbed] });
+                    } catch (error) {
+                        console.warn(`Could not send final DM to user ${memberId}:`, error);
+                    }
+                }
+            }
+        }, 5000);
+    }
 }
