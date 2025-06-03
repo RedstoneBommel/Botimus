@@ -16,6 +16,7 @@ export async function execute(member) {
         const joinChannel = meta.channel.join;
         const rulesChannel = meta.channel.rules;
         const botChannel = meta.channel.bot;
+        const supportChannel = meta.channel.support;
         const channel = member.guild.channels.cache.get(joinChannel);
         const embed = new EmbedBuilder()
             .setColor('#0000ff')
@@ -30,7 +31,8 @@ export async function execute(member) {
             .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
             .addFields(
                 { name: '📜 Read the Rules', value: `<#${rulesChannel}>`, inline: true },
-                { name: '🤖 Server own bot!', value: `<#${botChannel}>`, inline: true }
+                { name: '🤖 Server own bot!', value: `<#${botChannel}>`, inline: true },
+                { name: '🎫 Need Support?', value: `<#${supportChannel}>`, inline: true }
             )
             .setFooter({ text: `Welcome aboard! 🚀` })
             .setTimestamp();
