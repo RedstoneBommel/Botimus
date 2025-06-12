@@ -14,7 +14,7 @@ export async function execute(member) {
         const metaPath = path.join(__dirname, '../meta.json');
         const meta = JSON.parse(await readFile(metaPath, 'utf-8'));
         const joinChannel = meta.channel.join;
-        const rulesChannel = meta.channel.rules;
+        const rulesChannel = meta.channel.rule;
         const botChannel = meta.channel.bot;
         const supportChannel = meta.channel.support;
         const channel = member.guild.channels.cache.get(joinChannel);
