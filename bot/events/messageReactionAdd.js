@@ -3,7 +3,7 @@ import { readFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-export const name = Events.MessageReactionRemove;
+export const name = Events.MessageReactionAdd;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

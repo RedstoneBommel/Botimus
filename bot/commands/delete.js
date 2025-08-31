@@ -17,15 +17,6 @@ export const data = new SlashCommandBuilder()
                     .setDescription('Select which messages should be deleted.')
                     .setRequired(false)
             )
-    )
-    .addSubcommand(command =>
-        command.setName('role')
-            .setDescription('Delete any role from this guild.')
-            .addRoleOption(option =>
-                option.setName('role')
-                    .setDescription('Select a role to delete from the guild.')
-                    .setRequired(true)
-            )
     );
 
 export async function execute(interaction) {
@@ -82,22 +73,6 @@ export async function execute(interaction) {
         } catch (error) {
             console.error('Message deleting error:', error);
             return await interaction.editReply({ content: 'Something went wrong while deleting the messages.' });
-        }
-    } else if (command === 'role') {
-        const roleFetch = await guild.roles.fetch(role.id);
-        
-        if (roleFetch) {
-            try {
-                const roleName = roleFetch.name;
-                await roleFetch.delete();
-                
-                return await interaction.editReply({ content: `${roleName} role deleted from ${guild.name} successfully.` });
-            } catch (error) {
-                console.error('Role deleting error:', error);
-                return await interaction.editReply({ content: 'Something went wrong while deleting the role.' });
-            }
-        } else {
-            return await interaction.editReply({ content: 'Role not found.' });
         }
     } else {
         return await interaction.editReply({ content: 'Unknown subcommand used.' });
