@@ -1,4 +1,4 @@
-import { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
+import { EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import { translate } from 'google-translate-api-browser';
 import ISO6391 from 'iso-639-1';
 import { closeHostLobby, generateInviteEmbed } from '../utils/flagGuesserHost.js';

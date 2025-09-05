@@ -1,4 +1,4 @@
-import { ChannelType, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { ChannelType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 
 export const data = new SlashCommandBuilder()
     .setName('event')
@@ -78,7 +78,7 @@ export async function execute(interaction) {
     const adminOnly = ['create', 'delete'];
     const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.KickMembers);
     
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     
     if (adminOnly.includes(subcommand) && !isAdmin) {
         return interaction.editReply({ content: 'You do not have permission to use this command.', flags: 64 });

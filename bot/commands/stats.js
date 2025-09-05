@@ -1,4 +1,4 @@
-import { PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
+import { MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from "discord.js";
 import { createStatsChannel } from "../utils/statsChannel.js";
 
 export const data = new SlashCommandBuilder()
@@ -20,10 +20,10 @@ export async function execute(interaction) {
     const option = interaction.options.getString('type');
     const guild = interaction.guild;
     
-    await interaction.deferReply({ flags: 64 });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     
     if (!guild) {
-        return interaction.reply({ content: 'This command can only be used in servers.', flags: 64 });
+        return interaction.reply({ content: 'This command can only be used in servers.', flags: MessageFlags.Ephemeral });
     }
     
     await createStatsChannel(guild, option);
