@@ -16,9 +16,9 @@ export const data = new SlashCommandBuilder()
                 .setDescription('Enter a name for your private voice channel.')
                 .setRequired(true)
         )
-        .addStringOption(option =>
+        .addBooleanOption(option =>
             option.setName('visible')
-                .setDescription('Should all members be able to see your private voice channel? (default: false)')
+                .setDescription('Should your private voice channel be visible to everyone? (default: false)')
                 .setRequired(false)
         )
     )
@@ -58,52 +58,90 @@ export async function execute(interaction) {
                 return await interaction.editReply({ content: 'You already have a private voice channel.' });
             } else {
                 const channelName = interaction.options.getString('name');
-                const visible = interaction.options.getString('visible') === 'true' ? true : false;
+                const visibleOption = interaction.options.getBoolean('visible') ?? false;
                 const profilePath = path.join(__dirname, '..', 'data/voices', `${interaction.user.id}.json`);
                 const metaPath = path.join(__dirname, '../meta.json');
                 const meta = JSON.parse(await readFile(metaPath, 'utf-8'));
                 const guild = interaction.guild;
+
+                let voiceChannelData;
+                let voiceChannel;
                 
                 if (!guild) {
                     return await interaction.editReply({ content: 'This command only works in guilds.' });
                 }
-                
-                const voiceChannel = await guild.channels.create({
+
+                voiceChannelData = {
                     name: channelName,
                     type: ChannelType.GuildVoice,
-                    parent: meta.categories.private_voice,
-                    permissionOverwrites: [
-                        {
-                            id: guild.roles.everyone.id,
-                            deny: visible ? [
-                                PermissionFlagsBits.Connect
-                            ] : [
-                                PermissionFlagsBits.Connect,
-                                PermissionFlagsBits.ViewChannel
-                            ],
-                            allow: visible ? [
-                                PermissionFlagsBits.ViewChannel
-                            ] : []
-                        },
-                        {
-                            id: interaction.user.id,
-                            allow: [
-                                PermissionFlagsBits.ViewChannel,
-                                PermissionFlagsBits.Connect,
-                                PermissionFlagsBits.Speak
-                            ]
-                        }
-                    ]
-                });
+                    mode: visibleOption ? 'public' : 'private',
+                    parent: meta.categories.private_voice
+                }
+                
+                if (visibleOption) {
+                    voiceChannelData = {
+                        ...voiceChannelData,
+                        permissionOverwrites: [
+                            {
+                                id: guild.roles.everyone.id,
+                                deny: [
+                                    PermissionFlagsBits.Connect,
+                                    PermissionFlagsBits.ViewChannel
+                                ],
+                                allow: []
+                            },
+                            {
+                                id: meta.role.member,
+                                allow: [
+                                    PermissionFlagsBits.ViewChannel,
+                                    PermissionFlagsBits.Connect,
+                                    PermissionFlagsBits.Speak
+                                ]
+                            }
+                        ]
+                    };
+                } else {
+                    voiceChannelData = {
+                        ...voiceChannelData,
+                        permissionOverwrites: [
+                            {
+                                id: guild.roles.everyone.id,
+                                deny: visibleOption ? [
+                                    PermissionFlagsBits.Connect
+                                ] : [
+                                    PermissionFlagsBits.Connect,
+                                    PermissionFlagsBits.ViewChannel
+                                ],
+                                allow: visibleOption ? [
+                                    PermissionFlagsBits.ViewChannel
+                                ] : []
+                            },
+                            {
+                                id: interaction.user.id,
+                                allow: [
+                                    PermissionFlagsBits.ViewChannel,
+                                    PermissionFlagsBits.Connect,
+                                    PermissionFlagsBits.Speak
+                                ]
+                            }
+                        ]
+                    };
+                }
+
+                voiceChannel = await guild.channels.create(voiceChannelData);
                 
                 const voiceData = {
                     owner: interaction.user.id,
                     channel_id: voiceChannel.id,
                     name: channelName,
-                    visible: visible,
-                    permitted: []
+                    visible: visibleOption ? 'public' : 'private',
+                    ...(visibleOption 
+                        ? { forbidden: [] } 
+                        : { permitted: [] }
+                    )
                 }
                 
+                console.log(voiceData);
                 await writeFile(profilePath, JSON.stringify(voiceData, null, 4), 'utf-8');
                 return await interaction.editReply({content: `Your private voice channel has been created. You can join it here: ${voiceChannel}`});
             }
@@ -122,23 +160,45 @@ export async function execute(interaction) {
                     return await interaction.editReply({ content: 'User not found.' });
                 }
                 
-                if (profileData.permitted.includes(user.id)) {
-                    return await interaction.editReply({ content: 'This user already has access to your private voice channel.' });
+                if (profileData.visible === 'private') {
+                    if (profileData.permitted.includes(user.id)) {
+                        return await interaction.editReply({ content: 'This user already has access to your private voice channel.' });
+                    }
+                    
+                    const voiceChannel = await guild.channels.fetch(profileData.channel_id);
+                    
+                    if (!voiceChannel) {
+                        return await interaction.editReply({ content: 'Your private voice channel could not be found.' });
+                    }
+                    
+                    await voiceChannel.permissionOverwrites.create(user.id, {
+                        ViewChannel: true,
+                        Connect: true,
+                        Speak: true
+                    });
+                    
+                    profileData.permitted.push(user.id);
+                } else  if (profileData.visible === 'public') {
+                    if (!profileData.forbidden.includes(user.id)) {
+                        return await interaction.editReply({ content: 'This user already has access to your private voice channel.' });
+                    }
+
+                    const voiceChannel = await guild.channels.fetch(profileData.channel_id);
+
+                    if (!voiceChannel) {
+                        return await interaction.editReply({ content: 'Your private voice channel could not be found.' });
+                    }
+
+                    await voiceChannel.permissionOverwrites.create(user.id, {
+                        ViewChannel: true,
+                        Connect: true,
+                        Speak: true
+                    });
+
+                    profileData.forbidden = profileData.forbidden.filter(id => id !== user.id);
+                } else {
+                    return await interaction.editReply({ content: 'Your private voice channel has an invalid visibility.' });
                 }
-                
-                const voiceChannel = await guild.channels.fetch(profileData.channel_id);
-                
-                if (!voiceChannel) {
-                    return await interaction.editReply({ content: 'Your private voice channel could not be found.' });
-                }
-                
-                await voiceChannel.permissionOverwrites.create(user.id, {
-                    ViewChannel: true,
-                    Connect: true,
-                    Speak: true
-                });
-                
-                profileData.permitted.push(user.id);
                 
                 await writeFile(profilePath, JSON.stringify(profileData, null, 4), 'utf-8');
                 return await interaction.editReply({ content: `Successfully gave <@${user.id}> access to your private voice channel.` });
@@ -158,19 +218,41 @@ export async function execute(interaction) {
                     return await interaction.editReply({ content: 'User not found.' });
                 }
                 
-                if (!profileData.permitted.includes(user.id)) {
-                    return await interaction.editReply({ content: 'This user does not have access to your private voice channel.' });
+                if (profileData.visible === 'private') {
+                    if (!profileData.permitted.includes(user.id)) {
+                        return await interaction.editReply({ content: 'This user does not have access to your private voice channel.' });
+                    }
+                    
+                    const voiceChannel = await guild.channels.fetch(profileData.channel_id);
+                    
+                    if (!voiceChannel) {
+                        return await interaction.editReply({ content: 'Your private voice channel could not be found.' });
+                    }
+                    
+                    await voiceChannel.permissionOverwrites.delete(user.id);
+                    
+                    profileData.permitted = profileData.permitted.filter(id => id !== user.id);
+                } else  if (profileData.visible === 'public') {
+                    if (profileData.forbidden.includes(user.id)) {
+                        return await interaction.editReply({ content: 'This user does not have access to your private voice channel.' });
+                    }
+                    
+                    const voiceChannel = await guild.channels.fetch(profileData.channel_id);
+
+                    if (!voiceChannel) {
+                        return await interaction.editReply({ content: 'Your private voice channel could not be found.' });
+                    }
+                    
+                    await voiceChannel.permissionOverwrites.create(user.id, {
+                        ViewChannel: false,
+                        Connect: false,
+                        Speak: false
+                    });
+
+                    profileData.forbidden.push(user.id);
+                } else {
+                    return await interaction.editReply({ content: 'Your private voice channel has an invalid visibility.' });
                 }
-                
-                const voiceChannel = await guild.channels.fetch(profileData.channel_id);
-                
-                if (!voiceChannel) {
-                    return await interaction.editReply({ content: 'Your private voice channel could not be found.' });
-                }
-                
-                await voiceChannel.permissionOverwrites.delete(user.id);
-                
-                profileData.permitted = profileData.permitted.filter(id => id !== user.id);
                 
                 await writeFile(profilePath, JSON.stringify(profileData, null, 4), 'utf-8');
                 return await interaction.editReply({ content: `Successfully removed <@${user.id}>'s access to your private voice channel.` });
