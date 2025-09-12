@@ -6,5 +6,6 @@
 
 **/meta.json
 
-**/clients
+server/**/clients
+bot/**/clients
 **/voices
