@@ -28,7 +28,7 @@ export const data = new SlashCommandBuilder()
     // )
     // .addSubcommand(command => command
     //     .setName('notification-remove')
-    //     .setDescription('Remove a Streamer to your private Twitch Notification list.')
+    //     .setDescription('Remove a Streamer from your private Twitch Notification list.')
     //     .addStringOption(option => option
     //         .setName('streamer')
     //         .setDescription('The name of the Twitch streamer')
