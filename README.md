@@ -1,6 +1,6 @@
 # Botimus Prime
 
-Discord bot created and published by **RedstoneBommel** and **Rethias**. <br/> With the help of this bot, it is easy to manage, structure, and build Discord communities.
+Discord bot created and published by **RedstoneBommel**.<br/> With the help of this bot, it is easy to manage, structure, and build Discord communities.
 
 ---
 
