@@ -3,6 +3,11 @@
 - ban command
 - kick command
 - timeout command
+- verify command
+- help command
+    - dynamic embed 
+    - gets data from a uptodata database 
+        - database gets data from delpoy.js file
 
 ## WebSocket
 
@@ -13,3 +18,4 @@
 
 - Store Client Cards on the Server
 - Store PVCs on the Server
+- Add Twitch Authentication 
