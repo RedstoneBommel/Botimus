@@ -1,7 +1,7 @@
 import { PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import { fetchColorData } from '../utils/fetchData.js';
 
-let colorChoices = [];
+let colorChoices;
 
 try {
     colorChoices = await fetchColorData();
@@ -93,11 +93,12 @@ export async function execute(interaction) {
             color: cleanColor
         }
         
-        if (permissions.lenght > 0) {
+        if (permissions.length > 0) {
             roleData.permissions = permissions
         };
         
         await guild.roles.create(roleData);
+        return await interaction.editReply({ content: `${name} role created in ${guild.name} successfully.` });
         
     } else if (command === 'delete') {
         const roleFetch = await guild.roles.fetch(role.id);

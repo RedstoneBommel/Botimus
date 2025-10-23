@@ -7,8 +7,8 @@ import { fileURLToPath, pathToFileURL } from 'url';
 dotenv.config();
 
 const commands = [];
-const token = process.env.BOT_TOKEN_PROD;
-const clientId = process.env.CLIENT_ID_PROD;
+const token = process.env.BOT_TOKEN_DEV;
+const clientId = process.env.CLIENT_ID_DEV;
 const guildId = process.env.GUILD_ID;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

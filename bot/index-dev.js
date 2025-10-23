@@ -65,7 +65,7 @@ const main = async () => {
 	await loadCommands();
 	await loadEvents();
 	startWebSocketClient();
-	client.login(process.env.BOT_TOKEN_PROD);
+	client.login(process.env.BOT_TOKEN_DEV);
 };
 
 main();
