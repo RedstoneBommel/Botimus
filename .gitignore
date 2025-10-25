@@ -7,5 +7,6 @@
 **/meta.json
 
 server/**/clients
+server/**/auth
 bot/**/clients
 **/voices

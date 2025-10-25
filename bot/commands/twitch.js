@@ -44,10 +44,10 @@ export async function execute(interaction) {
 
     try {
         if (subCommand === 'get') {
-            const live_response = await axios.get(`${process.env.BACKEND_URL}/twitch/live/${streamer}`, {
+            const live_response = await axios.get(`${process.env.BACKEND_URL}/api/twitch/live/${streamer}`, {
                 validateStatus: (status) => status >= 200 && status <= 404
             });
-            const user_response = await axios.get(`${process.env.BACKEND_URL}/twitch/user/${streamer}`);
+            const user_response = await axios.get(`${process.env.BACKEND_URL}/api/twitch/user/${streamer}`);
             let embed;
 
             if (live_response.status === 200) {

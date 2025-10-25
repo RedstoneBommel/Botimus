@@ -33,9 +33,7 @@ export async function execute(interaction) {
 				});
 			}
 		}
-	}
-	
-	else if (interaction.isModalSubmit()) {
+	} else if (interaction.isModalSubmit()) {
 		if (interaction.customId === 'createProfile') {
 			try {
 				const nick = interaction.fields.getTextInputValue('nick');
@@ -118,6 +116,26 @@ export async function execute(interaction) {
 					content: '❌ Error, while updating profile!',
 					flags: 64
 				});
+			}
+		}
+	} else if (interaction.isButton()) {
+		// Button Interactions handle Verification Commands
+		if (interaction.customId === 'verify-cancel') {
+			try {
+				await fetch(`${process.env.BACKEND_URL}/auth/twitch/delete`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						userId: interaction.user.id
+					})
+				});
+				
+				await interaction.update({ 
+					content: 'Der Verifizierungsvorgang wurde abgebrochen.', 
+					components: []
+				});
+			} catch (error) {
+				console.error('Error while cancelling verification:', error);
 			}
 		}
 	}

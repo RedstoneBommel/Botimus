@@ -19,3 +19,7 @@
 - Store Client Cards on the Server
 - Store PVCs on the Server
 - Add Twitch Authentication 
+
+
+#### IMPORTANT
+ Store all existing and up coming users in the clients table

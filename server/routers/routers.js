@@ -1,6 +1,8 @@
 import express from 'express';
-import { twitch } from '../utils/twitch.js';
+import { twitch, twitch_verify, state_store } from '../utils/twitch.js';
 
-export const router = express.Router();
+export const api = express.Router();
+export const auth = express.Router();
 
-router.use('/twitch', twitch);
+api.use('/twitch', twitch);
+auth.use('/twitch', twitch_verify);

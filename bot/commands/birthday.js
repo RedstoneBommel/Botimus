@@ -50,7 +50,7 @@ export async function execute(interaction) {
                 return interaction.editReply({ content: 'Invalid date! Please enter your birthday in this format: YYYY-MM-DD' });
             } else {
                 try {
-                    const response = await axios.post(`${process.env.BACKEND_URL}/birthday/create`, {
+                    const response = await axios.post(`${process.env.BACKEND_URL}/api/birthday/create`, {
                         userId,
                         date,
                         global
@@ -68,7 +68,7 @@ export async function execute(interaction) {
             }
         case 'delete':
             try {
-                const response = await axios.post(`${process.env.BACKEND_URL}/birthday/delete`, {
+                const response = await axios.post(`${process.env.BACKEND_URL}/api/birthday/delete`, {
                     userId
                 });
                 
@@ -84,7 +84,7 @@ export async function execute(interaction) {
         case 'next':
             let embed;
             try {
-                const response = await axios.get(`${process.env.BACKEND_URL}/birthday/next`);
+                const response = await axios.get(`${process.env.BACKEND_URL}/api/birthday/next`);
                 
                 if (response.status === 200) {
                     const serverName = interaction.guild.name;
