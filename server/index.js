@@ -6,6 +6,7 @@ import { api, auth } from './routers/routers.js';
 import { startWebSocketServer } from './utils/webSocketServer.js';
 import { header } from './tools/formattedPrint.js';
 import pool from './utils/dataBaseServer.js';
+import { executeRconCommand } from './services/rcon.js';
 
 dotenv.config();
 

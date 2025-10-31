@@ -1,11 +1,31 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import pool from '../utils/dataBaseServer.js';
+import { executeRconCommand } from '../services/rcon.js';
 
 dotenv.config();
 
 export const minecraft_verify = express.Router();
+export const minecraft_execute_commad = express.Router();
 
+// Execute RCON command
+minecraft_execute_commad.post('/command', async (req, res) => {
+    const { command } = req.body;
+
+    if (!command) {
+        return res.status(400).json({ error: 'Command is required.' });
+    }
+
+    try {
+        const response = await executeRconCommand(command);
+        res.status(200).json({ response: response });
+    } catch (error) {
+        console.error('Error executing RCON command:', error.message);
+        res.status(500).json({ error: 'Failed to execute RCON command.' });
+    }
+});
+
+// Store verifyed Minecraft account
 minecraft_verify.post('/verify', async (req, res) => {
     const { userId, minecraftUsername, minecraftUUID } = req.body;
 
