@@ -52,8 +52,8 @@ minecraft_verify.post('/verify', async (req, res) => {
         }
 
         await pool.query(
-            'INSERT INTO minecraft_auths (CLIENTID, UUID, USERNAME) VALUES (?, ?, ?)',
-            [clients[0].ID, minecraftUUID, minecraftUsername]
+            'INSERT INTO minecraft_auths (CLIENTID, UUID, USERNAME, WHITELISTED) VALUES (?, ?, ?, ?)',
+            [clients[0].ID, minecraftUUID, minecraftUsername, 0]
         );
         res.status(200).send('Minecraft account successfully linked.');
     } catch (error) {

@@ -10,3 +10,5 @@ server/**/clients
 server/**/auth
 bot/**/clients
 **/voices
+
+NOTES.md

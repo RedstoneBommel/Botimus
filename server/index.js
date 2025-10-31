@@ -6,7 +6,7 @@ import { api, auth } from './routers/routers.js';
 import { startWebSocketServer } from './utils/webSocketServer.js';
 import { header } from './tools/formattedPrint.js';
 import pool from './utils/dataBaseServer.js';
-import { executeRconCommand } from './services/rcon.js';
+import { launchScanner } from './controllers/Scanner.js';
 
 dotenv.config();
 
@@ -19,6 +19,8 @@ app.use(helmet());
 app.use(express.json());
 app.use('/api', api);
 app.use('/auth', auth);
+
+launchScanner();
 
 app.listen(port, () => {
     startWebSocketServer(webSocketPort);
