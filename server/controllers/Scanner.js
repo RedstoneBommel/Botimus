@@ -14,7 +14,7 @@ export async function launchScanner() {
             'function': scanTwitchCurrentLive
         },
         'minecraft': {
-            'interval': process.env.INTERVAL_MINECRAFT_NEW_CLIENTS || 300000,
+            'interval': process.env.MINECRAFT_INTERVAL_NEW_CLIENTS || 300000,
             'function': scanVerifiedMinecraftUsers
         }
     }

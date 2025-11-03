@@ -2,14 +2,19 @@ import dotenv from 'dotenv';
 import express from 'express';
 import pool from '../utils/dataBaseServer.js';
 import { executeRconCommand } from '../services/rcon.js';
+import { spawn } from 'child_process';
+import path from 'path';
+import { header} from '../tools/formattedPrint.js';
 
 dotenv.config();
 
+const port = process.env.PORT;
+
 export const minecraft_verify = express.Router();
-export const minecraft_execute_commad = express.Router();
+export const minecraft_execute = express.Router();
 
 // Execute RCON command
-minecraft_execute_commad.post('/command', async (req, res) => {
+minecraft_execute.post('/command', async (req, res) => {
     const { command } = req.body;
 
     if (!command) {
@@ -22,6 +27,49 @@ minecraft_execute_commad.post('/command', async (req, res) => {
     } catch (error) {
         console.error('Error executing RCON command:', error.message);
         res.status(500).json({ error: 'Failed to execute RCON command.' });
+    }
+});
+
+minecraft_execute.post('/start', async (req, res) => {
+    try {
+        const batchFilePath = path.join(process.env.MINECRAFT_SERVER_PATH, 'start.bat');
+        spawn('cmd.exe', ['/c', 'start', '', batchFilePath]);
+
+        res.status(200).json({
+            message: 'Minecraft server is starting.',
+        });
+    } catch (error) {
+        console.error('Error starting Minecraft server:', error.message);
+        res.status(500).json({ error: 'Failed to start Minecraft server.' });
+    }
+});
+
+minecraft_execute.post('/open', async (req, res) => {
+    try {
+        let verifiedUsersById = [];
+        const serverIp = process.env.MINECRAFT_SERVER_IP;
+        const [verifiedUsers] = await pool.query(
+            `SELECT CLIENTID FROM minecraft_auths`
+        );
+        
+        for (const user of verifiedUsers) {
+            const [client] = await pool.query(
+                'SELECT DISCORDID FROM clients WHERE ID = ?',
+                [user.CLIENTID]
+            );
+
+            if (client.length > 0) {
+                verifiedUsersById.push(client[0].DISCORDID);
+            }
+        }
+
+        return res.status(200).json({
+            verifiedUsers: verifiedUsersById,
+            serverIp
+        });
+    } catch (error) {
+        console.error('Error fetching verified Minecraft users:', error.message);
+        return res.status(500).send({ error: 'Internal Server Error.' });
     }
 });
 
